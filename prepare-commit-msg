@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This way we can customize which branches should be skipped when
+# prepending commit message.
+if [ -z "$BRANCHES_TO_SKIP" ]; then
+  BRANCHES_TO_SKIP=(master develop test)
+fi
+
+# We take the branch name containing Jira task ID
+BRANCH_NAME=$(git symbolic-ref --short HEAD)
+
+# We filter the branch names from Jira
+if [[ $BRANCH_NAME =~ ^.*((LDP|S8|S2|S9|AC)-[0-9]+).* ]]
+then
+  ticket="${BASH_REMATCH[1]}"
+  BRANCH_EXCLUDED=$(printf "%s\n" "${BRANCHES_TO_SKIP[@]}" | grep -c "^$ticket$")
+  BRANCH_IN_COMMIT=$(grep -c "\[$ticket\]" $1)
+
+  if [ -n "$ticket" ] && ! [[ $BRANCH_EXCLUDED -eq 1 ]] && ! [[ $BRANCH_IN_COMMIT -ge 1 ]]; then 
+    sed -i.bak -e "1s/^/[$ticket] /" $1
+  fi
+fi
